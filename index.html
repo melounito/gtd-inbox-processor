@@ -85,7 +85,11 @@
       React.useEffect(() => {
         const savedItems = localStorage.getItem('gtd-processed-items');
         if (savedItems) {
-          setProcessedItems(JSON.parse(savedItems));
+          try {
+            setProcessedItems(JSON.parse(savedItems));
+          } catch (e) {
+            console.error("Error loading saved items:", e);
+          }
         }
       }, []);
       
@@ -149,12 +153,15 @@
           setTimeout(() => {
             notification.classList.remove('visible');
           }, 2000);
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+          alert('Could not copy embed code. Your browser may not support this feature.');
         });
       };
       
       // Check if the URL is a valid Trello card URL
       const isTrelloCardUrl = (url) => {
-        return url.includes('trello.com/c/');
+        return url && url.includes('trello.com/c/');
       };
       
       // Extract card info from Trello URL
@@ -523,9 +530,6 @@
               </div>
             </div>
           )}
-
-          {/* Only including part of the steps for brevity */}
-          {/* In a complete implementation, include all the steps from the original component */}
           
           {/* Project Next Action Step */}
           {step === 'project-next-action' && (
@@ -690,109 +694,302 @@
             </div>
           )}
           
-          {/* Processing History */}
-          {processedItems.length > 0 && (
-            <div className="mt-8 border-t pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold">Processing History</h2>
-                <button 
-                  onClick={() => {
-                    // Export as JSON
-                    const dataStr = JSON.stringify(processedItems, null, 2);
-                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-                    
-                    const exportFileDefaultName = `gtd-history-${new Date().toISOString().slice(0, 10)}.json`;
-                    
-                    const linkElement = document.createElement('a');
-                    linkElement.setAttribute('href', dataUri);
-                    linkElement.setAttribute('download', exportFileDefaultName);
-                    linkElement.click();
-                  }}
-                  className="text-sm bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border flex items-center"
-                >
-                  <span>Export</span>
-                </button>
+          {/* Delegate Step */}
+          {step === 'delegate' && (
+            <div className="space-y-6">
+              <div className="bg-gray-100 p-4 rounded-md">
+                <p className="font-medium">Action:</p>
+                <p>{nextAction}</p>
+                {projectName && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    (Part of project: {projectName})
+                  </p>
+                )}
               </div>
+              
+              <p className="font-medium text-lg">Who will you delegate this to?</p>
               
               <div className="space-y-4">
-                {processedItems.map((processed, index) => (
-                  <div key={index} className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                    <div className="flex flex-col">
-                      <div className="flex justify-between items-start">
-                        <p className="font-medium text-lg">{processed.text}</p>
-                        <span className="text-xs text-gray-500">{processed.timestamp}</span>
-                      </div>
-                      
-                      {processed.trelloUrl && (
-                        <div className="mt-1 mb-2">
-                          <a 
-                            href={processed.trelloUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 flex items-center text-sm"
-                          >
-                            <Link size={14} className="mr-1" />
-                            Trello Card
-                          </a>
-                        </div>
-                      )}
-                      
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <div>
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded inline-block mb-2">
-                            {processed.destination}
-                          </span>
-                          
-                          {processed.project && (
-                            <div className="text-sm mt-1">
-                              <strong>Project:</strong> {processed.project}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div>
-                          {processed.action && (
-                            <div className="text-sm">
-                              <strong>Next Action:</strong> {processed.action}
-                            </div>
-                          )}
-                          
-                          {processed.context && (
-                            <div className="text-sm mt-1">
-                              <strong>Context:</strong> {processed.context}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                <div>
+                  <label className="block mb-1">Waiting for:</label>
+                  <input
+                    type="text"
+                    value={waitingFor}
+                    onChange={(e) => setWaitingFor(e.target.value)}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="e.g., John Smith"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block mb-1">Follow-up date (optional):</label>
+                  <input
+                    type="date"
+                    value={deferDate}
+                    onChange={(e) => setDeferDate(e.target.value)}
+                    className="w-full p-3 border rounded-md"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">When should you check if this was completed?</p>
+                </div>
+
+                <div>
+                  <label className="block mb-1 font-medium">Contact Method:</label>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <button
+                      onClick={() => setActionContext("Email")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Email" ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
+                    >
+                      <span>Email</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("Phone")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Phone" ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
+                      <span>Phone</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("In Person")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "In Person" ? "bg-yellow-100 border-yellow-300" : "bg-gray-50"}`}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      <span>In Person</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("Message")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Message" ? "bg-purple-100 border-purple-300" : "bg-gray-50"}`}
+                    >
+                      <span>Message</span>
+                    </button>
                   </div>
-                ))}
-              </div>
-              
-              <div className="mt-4 text-center">
+                </div>
+                
                 <button
                   onClick={() => {
-                    if (window.confirm('Are you sure you want to clear all processed items? This cannot be undone.')) {
-                      setProcessedItems([]);
-                      localStorage.removeItem('gtd-processed-items');
+                    if (waitingFor) {
+                      let result = `WAITING FOR: ${waitingFor}`;
+                      if (actionContext) result += ` | Method: ${actionContext}`;
+                      if (deferDate) result += ` | Follow-up: ${deferDate}`;
+                      completeProcessing(result);
                     }
                   }}
-                  className="text-sm text-red-600 hover:text-red-800"
+                  className="w-full bg-yellow-600 text-white p-3 rounded-md hover:bg-yellow-700"
                 >
-                  Clear History
+                  Add to Waiting For List
                 </button>
               </div>
             </div>
           )}
           
-          <div className="mt-6 text-center text-xs text-gray-500">
-            Based on David Allen's Getting Things Done® methodology
-          </div>
-        </div>
-      );
-    };
-    
-    ReactDOM.render(<GTDInboxProcessor />, document.getElementById('root'));
-  </script>
-</body>
-</html>
+          {/* Defer Step */}
+          {step === 'defer' && (
+            <div className="space-y-6">
+              <div className="bg-gray-100 p-4 rounded-md">
+                <p className="font-medium">Action:</p>
+                <p>{nextAction}</p>
+                {projectName && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    (Part of project: {projectName})
+                  </p>
+                )}
+              </div>
+              
+              <p className="font-medium text-lg">When should this be done?</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1">Specific date (optional):</label>
+                  <input
+                    type="date"
+                    value={deferDate}
+                    onChange={(e) => setDeferDate(e.target.value)}
+                    className="w-full p-3 border rounded-md"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Leave blank if it just needs to be done as soon as possible</p>
+                </div>
+
+                <div>
+                  <label className="block mb-1 font-medium">Action Context:</label>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <button
+                      onClick={() => setActionContext("Home / Ubytování")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Home / Ubytování" ? "bg-orange-100 border-orange-300" : "bg-gray-50"}`}
+                    >
+                      <Home className="w-4 h-4 mr-2" />
+                      <span>Home / Ubytování</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("Outside")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Outside" ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
+                    >
+                      <Globe className="w-4 h-4 mr-2" />
+                      <span>Outside</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("Calls and people")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Calls and people" ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      <span>Calls and people</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("Bez internetu - Papír")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Bez internetu - Papír" ? "bg-yellow-100 border-yellow-300" : "bg-gray-50"}`}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      <span>Bez internetu - Papír</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("Phone/PC")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Phone/PC" ? "bg-purple-100 border-purple-300" : "bg-gray-50"}`}
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
+                      <span>Phone/PC</span>
+                    </button>
+                    <button
+                      onClick={() => setActionContext("Jedině na PC - net")}
+                      className={`p-2 border rounded-md flex items-center ${actionContext === "Jedině na PC - net" ? "bg-indigo-100 border-indigo-300" : "bg-gray-50"}`}
+                    >
+                      <Monitor className="w-4 h-4 mr-2" />
+                      <span>Jedině na PC - net</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    if (deferDate) {
+                      completeProcessing(`CALENDAR: ${deferDate}${actionContext ? ' | Context: ' + actionContext : ''}`);
+                    } else {
+                      completeProcessing(`NEXT ACTIONS LIST${actionContext ? ' | Context: ' + actionContext : ''}`);
+                    }
+                  }}
+                  className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700"
+                >
+                  {deferDate ? 'Add to Calendar' : 'Add to Next Actions List'}
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Non-Actionable Options */}
+          {step === 'non-actionable' && (
+            <div className="space-y-6">
+              <div className="bg-gray-100 p-4 rounded-md">
+                <p className="font-medium">Item:</p>
+                <p>{item}</p>
+              </div>
+              
+              <p className="font-medium text-lg">What would you like to do with this?</p>
+              
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={() => completeProcessing('TRASH/DELETE')}
+                  className="text-left p-4 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 flex items-center"
+                >
+                  <Trash2 className="w-5 h-5 mr-3 text-red-600" />
+                  <div>
+                    <span className="font-medium">Trash it</span>
+                    <p className="text-sm text-gray-600">No longer needed</p>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => setStep('reference')}
+                  className="text-left p-4 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 flex items-center"
+                >
+                  <Archive className="w-5 h-5 mr-3 text-gray-600" />
+                  <div>
+                    <span className="font-medium">File as reference</span>
+                    <p className="text-sm text-gray-600">May need later</p>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => setStep('someday')}
+                  className="text-left p-4 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 flex items-center"
+                >
+                  <Clock className="w-5 h-5 mr-3 text-purple-600" />
+                  <div>
+                    <span className="font-medium">Someday/Maybe</span>
+                    <p className="text-sm text-gray-600">Consider in the future</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Reference Step */}
+          {step === 'reference' && (
+            <div className="space-y-6">
+              <div className="bg-gray-100 p-4 rounded-md">
+                <p className="font-medium">Item:</p>
+                <p>{item}</p>
+              </div>
+              
+              <p className="font-medium text-lg">Reference filing:</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1">Category (optional):</label>
+                  <input
+                    type="text"
+                    value={referenceCategory}
+                    onChange={(e) => setReferenceCategory(e.target.value)}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="e.g., Work, Personal, Project X"
+                  />
+                </div>
+                
+                <button
+                  onClick={() => {
+                    if (referenceCategory) {
+                      completeProcessing(`REFERENCE: ${referenceCategory}`);
+                    } else {
+                      completeProcessing('REFERENCE');
+                    }
+                  }}
+                  className="w-full bg-gray-600 text-white p-3 rounded-md hover:bg-gray-700"
+                >
+                  File as Reference
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Someday/Maybe Step */}
+          {step === 'someday' && (
+            <div className="space-y-6">
+              <div className="bg-gray-100 p-4 rounded-md">
+                <p className="font-medium">Item:</p>
+                <p>{item}</p>
+              </div>
+              
+              <p className="font-medium text-lg">Add to Someday/Maybe list:</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1">Remind date (optional):</label>
+                  <input
+                    type="date"
+                    value={deferDate}
+                    onChange={(e) => setDeferDate(e.target.value)}
+                    className="w-full p-3 border rounded-md"
+                  />
+                </div>
+                
+                <button
+                  onClick={() => {
+                    if (deferDate) {
+                      completeProcessing(`SOMEDAY/MAYBE (Reminder: ${deferDate})`);
+                    } else {
+                      completeProcessing('SOMEDAY/MAYBE LIST');
+                    }
+                  }}
+                  className="w-full bg-purple-600 text-white p-3 rounded-md hover:bg-purple-700"
+                >
+                  Add to Someday/Maybe
+                </button>
+              </div>
+            </div>
+          )}
