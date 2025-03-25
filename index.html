@@ -1,207 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>GTD Inbox Processor</title>
-  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    .iframe-container {
-      position: relative;
-      padding-bottom: 5px;
-      margin-top: 15px;
+    body {
+      font-family: sans-serif;
+      background-color: #f3f4f6;
+      padding: 2rem;
     }
-    .trello-embed {
-      border: 1px solid #ddd;
-      border-radius: 4px;
+    .container {
+      background: white;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    textarea {
       width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      margin-top: 1rem;
     }
-    .copy-link-btn {
-      position: absolute;
-      top: -25px;
-      right: 0;
-      font-size: 12px;
-      background: #0079bf;
+    button {
+      margin-top: 1rem;
+      background: #2563eb;
       color: white;
-      padding: 2px 8px;
-      border-radius: 3px;
+      border: none;
+      padding: 0.75rem 1.5rem;
       cursor: pointer;
-    }
-    .copy-link-btn:hover {
-      background: #026aa7;
-    }
-    .notification {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 10px 20px;
-      background-color: #5aac44;
-      color: white;
-      border-radius: 4px;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: 1000;
-    }
-    .notification.visible {
-      opacity: 1;
+      border-radius: 5px;
     }
   </style>
 </head>
-<body class="bg-gray-100">
-  <div id="notification" class="notification">Link copied to clipboard!</div>
-  <div id="root"></div>
+<body>
+  <div class="container">
+    <h1>GTD Inbox Processor</h1>
+    <textarea id="inbox" placeholder="Write your task here..."></textarea>
+    <button onclick="processItem()">Process</button>
+    <p id="result"></p>
+  </div>
 
-  <!-- Your React App -->
-  <script type="text/babel">
-    const {
-      CheckCircle, Archive, Clock, ArrowRight, HelpCircle, Trash2,
-      ChevronRight, CornerDownRight, Home, Globe, Phone, Monitor,
-      FileText, Users, Link, Copy, ExternalLink
-    } = LucideReact;
-
-    const GTDInboxProcessor = () => {
-      const [item, setItem] = React.useState('');
-      const [step, setStep] = React.useState('input');
-      const [processedItems, setProcessedItems] = React.useState([]);
-      const [projectName, setProjectName] = React.useState('');
-      const [nextAction, setNextAction] = React.useState('');
-      const [waitingFor, setWaitingFor] = React.useState('');
-      const [deferDate, setDeferDate] = React.useState('');
-      const [referenceCategory, setReferenceCategory] = React.useState('');
-      const [actionContext, setActionContext] = React.useState('');
-      const [trelloUrl, setTrelloUrl] = React.useState('');
-      const [showEmbed, setShowEmbed] = React.useState(false);
-
-      React.useEffect(() => {
-        const savedItems = localStorage.getItem('gtd-processed-items');
-        if (savedItems) {
-          try {
-            setProcessedItems(JSON.parse(savedItems));
-          } catch (e) {
-            console.error("Error loading saved items:", e);
-          }
-        }
-      }, []);
-
-      React.useEffect(() => {
-        if (processedItems.length > 0) {
-          localStorage.setItem('gtd-processed-items', JSON.stringify(processedItems));
-        }
-      }, [processedItems]);
-
-      const resetForm = () => {
-        setStep('input');
-        setItem('');
-        setProjectName('');
-        setNextAction('');
-        setWaitingFor('');
-        setDeferDate('');
-        setReferenceCategory('');
-        setActionContext('');
-        setTrelloUrl('');
-        setShowEmbed(false);
-      };
-
-      const completeProcessing = (destination) => {
-        const processedItem = {
-          text: item,
-          destination,
-          project: projectName || null,
-          action: nextAction || null,
-          context: actionContext || null,
-          timestamp: new Date().toLocaleString(),
-          trelloUrl: trelloUrl || null
-        };
-
-        setProcessedItems([processedItem, ...processedItems]);
-        if (trelloUrl) {
-          console.log('Trello card processed:', processedItem);
-        }
-
-        resetForm();
-      };
-
-      const copyEmbedLink = () => {
-        const embedCode = `<iframe src="${window.location.origin + window.location.pathname}" width="100%" height="600" frameborder="0"></iframe>`;
-        navigator.clipboard.writeText(embedCode).then(() => {
-          const notification = document.getElementById('notification');
-          notification.classList.add('visible');
-          setTimeout(() => {
-            notification.classList.remove('visible');
-          }, 2000);
-        }).catch(err => {
-          console.error('Failed to copy: ', err);
-          alert('Could not copy embed code. Your browser may not support this feature.');
-        });
-      };
-
-      const isTrelloCardUrl = (url) => url && url.includes('trello.com/c/');
-      const extractTrelloCardInfo = (url) => {
-        const cardId = url.split('/c/')[1]?.split('/')[0];
-        return { id: cardId, url: url };
-      };
-
-      return (
-        <div className="max-w-2xl mx-auto p-4 bg-white rounded-lg shadow my-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold mb-6">GTD Inbox Processor</h1>
-            <button onClick={copyEmbedLink} className="flex items-center text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
-              <Copy size={14} className="mr-1" />
-              Copy Embed Code
-            </button>
-          </div>
-
-          {step === 'input' && (
-            <div className="space-y-4">
-              <label className="block font-medium">Enter an item from your inbox:</label>
-              <textarea
-                value={item}
-                onChange={(e) => setItem(e.target.value)}
-                className="w-full p-3 border rounded-md h-32"
-                placeholder="e.g., Email from boss about project deadline"
-              />
-              <label className="block font-medium mb-2">Trello Card URL (optional):</label>
-              <div className="flex">
-                <input
-                  type="text"
-                  value={trelloUrl}
-                  onChange={(e) => {
-                    setTrelloUrl(e.target.value);
-                    setShowEmbed(isTrelloCardUrl(e.target.value));
-                  }}
-                  className="flex-grow p-3 border rounded-l-md"
-                  placeholder="https://trello.com/c/..."
-                />
-                {trelloUrl && (
-                  <a href={trelloUrl} target="_blank" rel="noopener noreferrer" className="p-3 bg-gray-100 border border-l-0 rounded-r-md hover:bg-gray-200">
-                    <ExternalLink size={20} />
-                  </a>
-                )}
-              </div>
-              {showEmbed && (
-                <div className="iframe-container">
-                  <div className="copy-link-btn" onClick={() => navigator.clipboard.writeText(trelloUrl)}>
-                    Copy Link
-                  </div>
-                  <iframe src={`${trelloUrl}/embed`} className="trello-embed" height="200" frameBorder="0"></iframe>
-                </div>
-              )}
-              <button
-                onClick={() => item.trim() && setStep('actionable')}
-                className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700"
-              >
-                Process This Item
-              </button>
-            </div>
-          )}
-        </div>
-      );
-    };
-    ReactDOM.render(<GTDInboxProcessor />, document.getElementById('root'));
+  <script>
+    function processItem() {
+      const input = document.getElementById('inbox').value;
+      document.getElementById('result').textContent = "✅ Processed: " + input;
+    }
   </script>
 </body>
 </html>
