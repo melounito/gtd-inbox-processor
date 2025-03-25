@@ -10,19 +10,16 @@
   <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    /* Custom styles */
     .iframe-container {
       position: relative;
       padding-bottom: 5px;
       margin-top: 15px;
     }
-    
     .trello-embed {
       border: 1px solid #ddd;
       border-radius: 4px;
       width: 100%;
     }
-    
     .copy-link-btn {
       position: absolute;
       top: -25px;
@@ -34,11 +31,9 @@
       border-radius: 3px;
       cursor: pointer;
     }
-    
     .copy-link-btn:hover {
       background: #026aa7;
     }
-    
     .notification {
       position: fixed;
       top: 20px;
@@ -51,7 +46,6 @@
       transition: opacity 0.3s ease;
       z-index: 1000;
     }
-    
     .notification.visible {
       opacity: 1;
     }
@@ -61,13 +55,14 @@
   <div id="notification" class="notification">Link copied to clipboard!</div>
   <div id="root"></div>
 
+  <!-- Your React App -->
   <script type="text/babel">
-    const { 
-      CheckCircle, Archive, Clock, ArrowRight, HelpCircle, Trash2, 
-      ChevronRight, CornerDownRight, Home, Globe, Phone, Monitor, 
+    const {
+      CheckCircle, Archive, Clock, ArrowRight, HelpCircle, Trash2,
+      ChevronRight, CornerDownRight, Home, Globe, Phone, Monitor,
       FileText, Users, Link, Copy, ExternalLink
     } = LucideReact;
-    
+
     const GTDInboxProcessor = () => {
       const [item, setItem] = React.useState('');
       const [step, setStep] = React.useState('input');
@@ -80,8 +75,7 @@
       const [actionContext, setActionContext] = React.useState('');
       const [trelloUrl, setTrelloUrl] = React.useState('');
       const [showEmbed, setShowEmbed] = React.useState(false);
-      
-      // Load saved data from localStorage on component mount
+
       React.useEffect(() => {
         const savedItems = localStorage.getItem('gtd-processed-items');
         if (savedItems) {
@@ -92,15 +86,13 @@
           }
         }
       }, []);
-      
-      // Save processed items to localStorage when they change
+
       React.useEffect(() => {
         if (processedItems.length > 0) {
           localStorage.setItem('gtd-processed-items', JSON.stringify(processedItems));
         }
       }, [processedItems]);
-      
-      // Clear all form fields and return to input
+
       const resetForm = () => {
         setStep('input');
         setItem('');
@@ -113,12 +105,10 @@
         setTrelloUrl('');
         setShowEmbed(false);
       };
-      
-      // Add current item to history and reset form
+
       const completeProcessing = (destination) => {
-        // Create the processed item
-        const processedItem = { 
-          text: item, 
+        const processedItem = {
+          text: item,
           destination,
           project: projectName || null,
           action: nextAction || null,
@@ -126,30 +116,20 @@
           timestamp: new Date().toLocaleString(),
           trelloUrl: trelloUrl || null
         };
-        
-        // Add to the list and reset
+
         setProcessedItems([processedItem, ...processedItems]);
-        
-        // If it's a Trello card, generate export data
         if (trelloUrl) {
-          // We could generate markdown or other export formats here
           console.log('Trello card processed:', processedItem);
         }
-        
+
         resetForm();
       };
-      
-      // Copy the iframe embed code to clipboard
+
       const copyEmbedLink = () => {
-        // Create iframe embed code for current page
-        const embedCode = `<iframe src="${window.location.href}" width="100%" height="600" frameborder="0"></iframe>`;
-        
+        const embedCode = `<iframe src="${window.location.origin + window.location.pathname}" width="100%" height="600" frameborder="0"></iframe>`;
         navigator.clipboard.writeText(embedCode).then(() => {
-          // Show notification
           const notification = document.getElementById('notification');
           notification.classList.add('visible');
-          
-          // Hide notification after 2 seconds
           setTimeout(() => {
             notification.classList.remove('visible');
           }, 2000);
@@ -158,91 +138,58 @@
           alert('Could not copy embed code. Your browser may not support this feature.');
         });
       };
-      
-      // Check if the URL is a valid Trello card URL
-      const isTrelloCardUrl = (url) => {
-        return url && url.includes('trello.com/c/');
-      };
-      
-      // Extract card info from Trello URL
+
+      const isTrelloCardUrl = (url) => url && url.includes('trello.com/c/');
       const extractTrelloCardInfo = (url) => {
-        // This is a simplified implementation
-        // In a real app, you might use Trello's API to get actual card data
         const cardId = url.split('/c/')[1]?.split('/')[0];
-        return {
-          id: cardId,
-          url: url
-        };
+        return { id: cardId, url: url };
       };
 
       return (
         <div className="max-w-2xl mx-auto p-4 bg-white rounded-lg shadow my-8">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold mb-6">GTD Inbox Processor</h1>
-            <button 
-              onClick={copyEmbedLink}
-              className="flex items-center text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-            >
+            <button onClick={copyEmbedLink} className="flex items-center text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
               <Copy size={14} className="mr-1" />
               Copy Embed Code
             </button>
           </div>
-          
-          {/* Input Step */}
+
           {step === 'input' && (
             <div className="space-y-4">
-              <label className="block font-medium">
-                Enter an item from your inbox:
-              </label>
+              <label className="block font-medium">Enter an item from your inbox:</label>
               <textarea
                 value={item}
                 onChange={(e) => setItem(e.target.value)}
                 className="w-full p-3 border rounded-md h-32"
                 placeholder="e.g., Email from boss about project deadline"
               />
-              
-              <div>
-                <label className="block font-medium mb-2">
-                  Trello Card URL (optional):
-                </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={trelloUrl}
-                    onChange={(e) => {
-                      setTrelloUrl(e.target.value);
-                      setShowEmbed(isTrelloCardUrl(e.target.value));
-                    }}
-                    className="flex-grow p-3 border rounded-l-md"
-                    placeholder="https://trello.com/c/..."
-                  />
-                  {trelloUrl && (
-                    <a 
-                      href={trelloUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="p-3 bg-gray-100 border border-l-0 rounded-r-md hover:bg-gray-200"
-                    >
-                      <ExternalLink size={20} />
-                    </a>
-                  )}
-                </div>
+              <label className="block font-medium mb-2">Trello Card URL (optional):</label>
+              <div className="flex">
+                <input
+                  type="text"
+                  value={trelloUrl}
+                  onChange={(e) => {
+                    setTrelloUrl(e.target.value);
+                    setShowEmbed(isTrelloCardUrl(e.target.value));
+                  }}
+                  className="flex-grow p-3 border rounded-l-md"
+                  placeholder="https://trello.com/c/..."
+                />
+                {trelloUrl && (
+                  <a href={trelloUrl} target="_blank" rel="noopener noreferrer" className="p-3 bg-gray-100 border border-l-0 rounded-r-md hover:bg-gray-200">
+                    <ExternalLink size={20} />
+                  </a>
+                )}
               </div>
-              
               {showEmbed && (
                 <div className="iframe-container">
                   <div className="copy-link-btn" onClick={() => navigator.clipboard.writeText(trelloUrl)}>
                     Copy Link
                   </div>
-                  <iframe 
-                    src={`${trelloUrl}/embed`} 
-                    className="trello-embed"
-                    height="200"
-                    frameBorder="0"
-                  ></iframe>
+                  <iframe src={`${trelloUrl}/embed`} className="trello-embed" height="200" frameBorder="0"></iframe>
                 </div>
               )}
-              
               <button
                 onClick={() => item.trim() && setStep('actionable')}
                 className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700"
@@ -251,745 +198,6 @@
               </button>
             </div>
           )}
-          
-          {/* Actionable Decision */}
-          {step === 'actionable' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Item:</p>
-                <p>{item}</p>
-                {trelloUrl && (
-                  <div className="mt-2">
-                    <a 
-                      href={trelloUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 flex items-center text-sm"
-                    >
-                      <Link size={14} className="mr-1" />
-                      View Trello Card
-                    </a>
-                  </div>
-                )}
-              </div>
-              
-              <p className="font-medium text-lg">Is this item actionable?</p>
-              
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  onClick={() => setStep('project')}
-                  className="text-left p-4 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 flex items-center"
-                >
-                  <CheckCircle className="w-5 h-5 mr-3 text-green-600" />
-                  <span>Yes, it requires action</span>
-                </button>
-                
-                <button
-                  onClick={() => setStep('non-actionable')}
-                  className="text-left p-4 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 flex items-center"
-                >
-                  <Archive className="w-5 h-5 mr-3 text-gray-600" />
-                  <span>No, no action required</span>
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Project Decision */}
-          {step === 'project' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Item:</p>
-                <p>{item}</p>
-              </div>
-              
-              <p className="font-medium text-lg">Does this require multiple actions?</p>
-              
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  onClick={() => setStep('define-project')}
-                  className="text-left p-4 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 flex items-center"
-                >
-                  <CheckCircle className="w-5 h-5 mr-3 text-blue-600" />
-                  <span>Yes, it's a project</span>
-                </button>
-                
-                <button
-                  onClick={() => setStep('single-action')}
-                  className="text-left p-4 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 flex items-center"
-                >
-                  <ArrowRight className="w-5 h-5 mr-3 text-purple-600" />
-                  <span>No, it's a single action</span>
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Define Project */}
-          {step === 'define-project' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Item:</p>
-                <p>{item}</p>
-              </div>
-              
-              <p className="font-medium text-lg">Define your project:</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Project Type:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setProjectName(projectName => "Work: " + projectName.replace(/^(Work|Personal): /, ""))}
-                      className={`p-2 border rounded-md ${projectName.startsWith("Work:") ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
-                    >
-                      Work Project
-                    </button>
-                    <button
-                      onClick={() => setProjectName(projectName => "Personal: " + projectName.replace(/^(Work|Personal): /, ""))}
-                      className={`p-2 border rounded-md ${projectName.startsWith("Personal:") ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
-                    >
-                      Personal Project
-                    </button>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block mb-1">Project Name:</label>
-                  <input
-                    type="text"
-                    value={projectName.replace(/^(Work|Personal): /, "")}
-                    onChange={(e) => {
-                      const prefix = projectName.startsWith("Work:") ? "Work: " : 
-                                    projectName.startsWith("Personal:") ? "Personal: " : "";
-                      setProjectName(prefix + e.target.value);
-                    }}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="e.g., Redesign website"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block mb-1">Next Action:</label>
-                  <input
-                    type="text"
-                    value={nextAction}
-                    onChange={(e) => setNextAction(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="e.g., Email designer for quote"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block mb-1 font-medium">Action Context:</label>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <button
-                      onClick={() => setActionContext("Home / Ubytování")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Home / Ubytování" ? "bg-orange-100 border-orange-300" : "bg-gray-50"}`}
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      <span>Home / Ubytování</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Outside")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Outside" ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
-                    >
-                      <Globe className="w-4 h-4 mr-2" />
-                      <span>Outside</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Calls and people")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Calls and people" ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>Calls and people</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Bez internetu - Papír")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Bez internetu - Papír" ? "bg-yellow-100 border-yellow-300" : "bg-gray-50"}`}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      <span>Bez internetu - Papír</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Phone/PC")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Phone/PC" ? "bg-purple-100 border-purple-300" : "bg-gray-50"}`}
-                    >
-                      <Phone className="w-4 h-4 mr-2" />
-                      <span>Phone/PC</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Jedině na PC - net")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Jedině na PC - net" ? "bg-indigo-100 border-indigo-300" : "bg-gray-50"}`}
-                    >
-                      <Monitor className="w-4 h-4 mr-2" />
-                      <span>Jedině na PC - net</span>
-                    </button>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    // Ensure project has a type prefix if not already added
-                    if (!projectName.startsWith("Work:") && !projectName.startsWith("Personal:")) {
-                      setProjectName("Work: " + projectName);
-                    }
-                    
-                    if (projectName && nextAction) {
-                      setStep('action-options');
-                    }
-                  }}
-                  className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700"
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Single Action */}
-          {step === 'single-action' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Item:</p>
-                <p>{item}</p>
-              </div>
-              
-              <p className="font-medium text-lg">Define the next action:</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Next Action:</label>
-                  <input
-                    type="text"
-                    value={nextAction}
-                    onChange={(e) => setNextAction(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="e.g., Call Jim about meeting"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block mb-1 font-medium">Action Context:</label>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <button
-                      onClick={() => setActionContext("Home / Ubytování")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Home / Ubytování" ? "bg-orange-100 border-orange-300" : "bg-gray-50"}`}
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      <span>Home / Ubytování</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Outside")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Outside" ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
-                    >
-                      <Globe className="w-4 h-4 mr-2" />
-                      <span>Outside</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Calls and people")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Calls and people" ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>Calls and people</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Bez internetu - Papír")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Bez internetu - Papír" ? "bg-yellow-100 border-yellow-300" : "bg-gray-50"}`}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      <span>Bez internetu - Papír</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Phone/PC")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Phone/PC" ? "bg-purple-100 border-purple-300" : "bg-gray-50"}`}
-                    >
-                      <Phone className="w-4 h-4 mr-2" />
-                      <span>Phone/PC</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Jedině na PC - net")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Jedině na PC - net" ? "bg-indigo-100 border-indigo-300" : "bg-gray-50"}`}
-                    >
-                      <Monitor className="w-4 h-4 mr-2" />
-                      <span>Jedině na PC - net</span>
-                    </button>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    if (nextAction) {
-                      setStep('action-options');
-                    }
-                  }}
-                  className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700"
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Project Next Action Step */}
-          {step === 'project-next-action' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Project:</p>
-                <p>{projectName}</p>
-                <p className="text-sm text-gray-600 mt-1">Previous action completed</p>
-              </div>
-              
-              <p className="font-medium text-lg">Define the next action for this project:</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Next Action:</label>
-                  <input
-                    type="text"
-                    value={nextAction}
-                    onChange={(e) => setNextAction(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="e.g., Review design proposal"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block mb-1 font-medium">Action Context:</label>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <button
-                      onClick={() => setActionContext("Home / Ubytování")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Home / Ubytování" ? "bg-orange-100 border-orange-300" : "bg-gray-50"}`}
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      <span>Home / Ubytování</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Outside")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Outside" ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
-                    >
-                      <Globe className="w-4 h-4 mr-2" />
-                      <span>Outside</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Calls and people")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Calls and people" ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>Calls and people</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Bez internetu - Papír")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Bez internetu - Papír" ? "bg-yellow-100 border-yellow-300" : "bg-gray-50"}`}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      <span>Bez internetu - Papír</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Phone/PC")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Phone/PC" ? "bg-purple-100 border-purple-300" : "bg-gray-50"}`}
-                    >
-                      <Phone className="w-4 h-4 mr-2" />
-                      <span>Phone/PC</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Jedině na PC - net")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Jedině na PC - net" ? "bg-indigo-100 border-indigo-300" : "bg-gray-50"}`}
-                    >
-                      <Monitor className="w-4 h-4 mr-2" />
-                      <span>Jedině na PC - net</span>
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      if (nextAction) {
-                        setStep('action-options');
-                      }
-                    }}
-                    className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700"
-                  >
-                    Continue
-                  </button>
-                  
-                  <button
-                    onClick={() => resetForm()}
-                    className="w-full bg-gray-600 text-white p-3 rounded-md hover:bg-gray-700"
-                  >
-                    Done with Project
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Action Options */}
-          {step === 'action-options' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Action:</p>
-                <p>{nextAction}</p>
-                {projectName && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    (Part of project: {projectName})
-                  </p>
-                )}
-              </div>
-              
-              <p className="font-medium text-lg">How will you handle this action?</p>
-              
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  onClick={() => {
-                    if (projectName) {
-                      completeProcessing(`DONE (< 2 min task completed)${actionContext ? ' | Context: ' + actionContext : ''}`);
-                      // Save the current project name for reuse
-                      const savedProject = projectName;
-                      // Reset form except for project name
-                      setStep('project-next-action');
-                      setItem('');
-                      setProjectName(savedProject);
-                      setNextAction('');
-                      setWaitingFor('');
-                      setDeferDate('');
-                      setReferenceCategory('');
-                      setActionContext('');
-                    } else {
-                      completeProcessing(`DONE (< 2 min task completed)${actionContext ? ' | Context: ' + actionContext : ''}`);
-                    }
-                  }}
-                  className="text-left p-4 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 flex items-center"
-                >
-                  <CheckCircle className="w-5 h-5 mr-3 text-green-600" />
-                  <div>
-                    <span className="font-medium">Do it now</span>
-                    <p className="text-sm text-gray-600">Takes less than 2 minutes</p>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => setStep('delegate')}
-                  className="text-left p-4 bg-yellow-50 border border-yellow-200 rounded-md hover:bg-yellow-100 flex items-center"
-                >
-                  <CornerDownRight className="w-5 h-5 mr-3 text-yellow-600" />
-                  <div>
-                    <span className="font-medium">Delegate it</span>
-                    <p className="text-sm text-gray-600">Assign to someone else</p>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => setStep('defer')}
-                  className="text-left p-4 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 flex items-center"
-                >
-                  <Clock className="w-5 h-5 mr-3 text-blue-600" />
-                  <div>
-                    <span className="font-medium">Defer it</span>
-                    <p className="text-sm text-gray-600">Schedule for later</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Delegate Step */}
-          {step === 'delegate' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Action:</p>
-                <p>{nextAction}</p>
-                {projectName && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    (Part of project: {projectName})
-                  </p>
-                )}
-              </div>
-              
-              <p className="font-medium text-lg">Who will you delegate this to?</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Waiting for:</label>
-                  <input
-                    type="text"
-                    value={waitingFor}
-                    onChange={(e) => setWaitingFor(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="e.g., John Smith"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block mb-1">Follow-up date (optional):</label>
-                  <input
-                    type="date"
-                    value={deferDate}
-                    onChange={(e) => setDeferDate(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">When should you check if this was completed?</p>
-                </div>
-
-                <div>
-                  <label className="block mb-1 font-medium">Contact Method:</label>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <button
-                      onClick={() => setActionContext("Email")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Email" ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
-                    >
-                      <span>Email</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Phone")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Phone" ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
-                    >
-                      <Phone className="w-4 h-4 mr-2" />
-                      <span>Phone</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("In Person")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "In Person" ? "bg-yellow-100 border-yellow-300" : "bg-gray-50"}`}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>In Person</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Message")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Message" ? "bg-purple-100 border-purple-300" : "bg-gray-50"}`}
-                    >
-                      <span>Message</span>
-                    </button>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    if (waitingFor) {
-                      let result = `WAITING FOR: ${waitingFor}`;
-                      if (actionContext) result += ` | Method: ${actionContext}`;
-                      if (deferDate) result += ` | Follow-up: ${deferDate}`;
-                      completeProcessing(result);
-                    }
-                  }}
-                  className="w-full bg-yellow-600 text-white p-3 rounded-md hover:bg-yellow-700"
-                >
-                  Add to Waiting For List
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Defer Step */}
-          {step === 'defer' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Action:</p>
-                <p>{nextAction}</p>
-                {projectName && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    (Part of project: {projectName})
-                  </p>
-                )}
-              </div>
-              
-              <p className="font-medium text-lg">When should this be done?</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Specific date (optional):</label>
-                  <input
-                    type="date"
-                    value={deferDate}
-                    onChange={(e) => setDeferDate(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">Leave blank if it just needs to be done as soon as possible</p>
-                </div>
-
-                <div>
-                  <label className="block mb-1 font-medium">Action Context:</label>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <button
-                      onClick={() => setActionContext("Home / Ubytování")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Home / Ubytování" ? "bg-orange-100 border-orange-300" : "bg-gray-50"}`}
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      <span>Home / Ubytování</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Outside")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Outside" ? "bg-green-100 border-green-300" : "bg-gray-50"}`}
-                    >
-                      <Globe className="w-4 h-4 mr-2" />
-                      <span>Outside</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Calls and people")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Calls and people" ? "bg-blue-100 border-blue-300" : "bg-gray-50"}`}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>Calls and people</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Bez internetu - Papír")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Bez internetu - Papír" ? "bg-yellow-100 border-yellow-300" : "bg-gray-50"}`}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      <span>Bez internetu - Papír</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Phone/PC")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Phone/PC" ? "bg-purple-100 border-purple-300" : "bg-gray-50"}`}
-                    >
-                      <Phone className="w-4 h-4 mr-2" />
-                      <span>Phone/PC</span>
-                    </button>
-                    <button
-                      onClick={() => setActionContext("Jedině na PC - net")}
-                      className={`p-2 border rounded-md flex items-center ${actionContext === "Jedině na PC - net" ? "bg-indigo-100 border-indigo-300" : "bg-gray-50"}`}
-                    >
-                      <Monitor className="w-4 h-4 mr-2" />
-                      <span>Jedině na PC - net</span>
-                    </button>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    if (deferDate) {
-                      completeProcessing(`CALENDAR: ${deferDate}${actionContext ? ' | Context: ' + actionContext : ''}`);
-                    } else {
-                      completeProcessing(`NEXT ACTIONS LIST${actionContext ? ' | Context: ' + actionContext : ''}`);
-                    }
-                  }}
-                  className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700"
-                >
-                  {deferDate ? 'Add to Calendar' : 'Add to Next Actions List'}
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Non-Actionable Options */}
-          {step === 'non-actionable' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Item:</p>
-                <p>{item}</p>
-              </div>
-              
-              <p className="font-medium text-lg">What would you like to do with this?</p>
-              
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  onClick={() => completeProcessing('TRASH/DELETE')}
-                  className="text-left p-4 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 flex items-center"
-                >
-                  <Trash2 className="w-5 h-5 mr-3 text-red-600" />
-                  <div>
-                    <span className="font-medium">Trash it</span>
-                    <p className="text-sm text-gray-600">No longer needed</p>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => setStep('reference')}
-                  className="text-left p-4 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 flex items-center"
-                >
-                  <Archive className="w-5 h-5 mr-3 text-gray-600" />
-                  <div>
-                    <span className="font-medium">File as reference</span>
-                    <p className="text-sm text-gray-600">May need later</p>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => setStep('someday')}
-                  className="text-left p-4 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 flex items-center"
-                >
-                  <Clock className="w-5 h-5 mr-3 text-purple-600" />
-                  <div>
-                    <span className="font-medium">Someday/Maybe</span>
-                    <p className="text-sm text-gray-600">Consider in the future</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Reference Step */}
-          {step === 'reference' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Item:</p>
-                <p>{item}</p>
-              </div>
-              
-              <p className="font-medium text-lg">Reference filing:</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Category (optional):</label>
-                  <input
-                    type="text"
-                    value={referenceCategory}
-                    onChange={(e) => setReferenceCategory(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="e.g., Work, Personal, Project X"
-                  />
-                </div>
-                
-                <button
-                  onClick={() => {
-                    if (referenceCategory) {
-                      completeProcessing(`REFERENCE: ${referenceCategory}`);
-                    } else {
-                      completeProcessing('REFERENCE');
-                    }
-                  }}
-                  className="w-full bg-gray-600 text-white p-3 rounded-md hover:bg-gray-700"
-                >
-                  File as Reference
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Someday/Maybe Step */}
-          {step === 'someday' && (
-            <div className="space-y-6">
-              <div className="bg-gray-100 p-4 rounded-md">
-                <p className="font-medium">Item:</p>
-                <p>{item}</p>
-              </div>
-              
-              <p className="font-medium text-lg">Add to Someday/Maybe list:</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Remind date (optional):</label>
-                  <input
-                    type="date"
-                    value={deferDate}
-                    onChange={(e) => setDeferDate(e.target.value)}
-                    className="w-full p-3 border rounded-md"
-                  />
-                </div>
-                
-                <button
-                  onClick={() => {
-                    if (deferDate) {
-                      completeProcessing(`SOMEDAY/MAYBE (Reminder: ${deferDate})`);
-                    } else {
-                      completeProcessing('SOMEDAY/MAYBE LIST');
-                    }
-                  }}
-                  className="w-full bg-purple-600 text-white p-3 rounded-md hover:bg-purple-700"
-                >
-                  Add to Someday/Maybe
-                </button>
-              </div>
-            </div>
-          )}
+        </div>
+      );
+    };
